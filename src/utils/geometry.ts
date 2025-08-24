@@ -1,6 +1,6 @@
 import { Platform } from "react-native";
 import type { CameraProps, Orientation } from "react-native-vision-camera";
-import type { Point, Size } from "src/types";
+import type { Point, Size } from "../types";
 import { normalizePrecision } from "./convert";
 
 export const applyScaleFactor = (
@@ -63,7 +63,25 @@ export const applyTransformation = (
         return { x, y };
     }
   } else if (Platform.OS === "ios") {
-    return { x: y, y: x };
+    // For iPad: frame is always landscape-right, but device orientation varies
+    // We need to transform from landscape-right frame coordinates to device orientation
+    if (Platform.isPad) {
+      switch (orientation) {
+        case "portrait":
+          return { x: y, y: x };
+        case "portrait-upside-down":
+          return { x: target.height - y, y: target.width - x };
+        case "landscape-left":
+          return { x: x, y: target.height - y };
+        case "landscape-right":
+          return { x: target.width - x, y: y };
+        default:
+          console.warn(`Unsupported orientation: ${orientation}`);
+          return { x: y, y: x };
+      }
+    } else {
+      return { x: y, y: x };
+    }
   } else {
     throw new Error(`Unsupported platform: ${Platform.OS}`);
   }

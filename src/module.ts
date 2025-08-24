@@ -46,6 +46,7 @@ export const onBarcodeDetected = (
 
 const visionCameraProcessorPlugin = VisionCameraProxy.initFrameProcessorPlugin(
   MODULE_NAME,
+  {},
 ) as FrameProcessorPlugin | null;
 
 export type ScanBarcodesOptions = {

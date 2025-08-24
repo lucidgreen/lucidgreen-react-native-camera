@@ -1,7 +1,8 @@
 import type { CameraProps, Frame } from "react-native-vision-camera";
-import type { Barcode, Highlight, Size } from "src/types";
+import type { Barcode, Highlight, Size } from "../types";
 import { computeBoundingBoxFromCornerPoints } from "./convert";
 import { applyScaleFactor, applyTransformation } from "./geometry";
+import { Platform } from "react-native";
 
 export const computeHighlights = (
   barcodes: Pick<Barcode, "value" | "cornerPoints">[],
@@ -9,17 +10,29 @@ export const computeHighlights = (
   layout: Size,
   resizeMode: CameraProps["resizeMode"] = "cover",
 ): Highlight[] => {
-  "worklet";
+  ("worklet");
 
   // If the layout is not yet known, we can't compute the highlights
   if (layout.width === 0 || layout.height === 0) {
     return [];
   }
 
-  const adjustedLayout = {
-    width: layout.height,
-    height: layout.width,
-  };
+  // By default, the library swaps width for height and its working for android, iphone, ipad in portrait
+  const isIPad = Platform.OS == "ios" && Platform.isPad;
+  const isLandscape =
+    frame.orientation === "landscape-left" ||
+    frame.orientation === "landscape-right";
+  const shouldNotSwap = isIPad && isLandscape;
+
+  const adjustedLayout = shouldNotSwap
+    ? {
+        width: layout.width,
+        height: layout.height,
+      }
+    : {
+        width: layout.height,
+        height: layout.width,
+      };
 
   const highlights = barcodes.map<Highlight>(
     ({ value, cornerPoints }, index) => {
@@ -45,6 +58,7 @@ export const computeHighlights = (
 
       return {
         key: `${value}.${index}`,
+        value: value,
         ...valueFromCornerPoints,
       };
     },

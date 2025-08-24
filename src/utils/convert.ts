@@ -6,7 +6,7 @@ import type {
   BoundingBox,
   Point,
   iOSBarcode,
-} from "src/types";
+} from "../types";
 import { normalizeAndroidCodeType, normalizeiOSCodeType } from "./types";
 
 export const isIOSBarcode = (
