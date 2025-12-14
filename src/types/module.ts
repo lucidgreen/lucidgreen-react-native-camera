@@ -10,7 +10,7 @@ export type VisionCameraConstants = {
 
 export type BoundingBox = iOSBoundingBox;
 export type CornerPoints = Point[];
-export type Highlight = BoundingBox & { key: Key };
+export type Highlight = BoundingBox & { key: Key, success?: boolean, value: string | null };
 export type BarcodeType =
   | "aztec"
   | "codabar"
@@ -21,7 +21,12 @@ export type BarcodeType =
   | "ean-13"
   | "ean-8"
   | "gs1-databar"
+  | "gs1-data-bar"
+  | "gs1-data-bar-limited"
+  | "gs1-data-bar-expanded"
   | "itf"
+  | "itf-1"
+  | "itf-14"
   | "msi-plessey"
   | "pdf-417"
   | "qr"

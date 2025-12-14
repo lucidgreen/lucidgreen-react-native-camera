@@ -5,7 +5,7 @@ import type {
   AndroidEmailType,
   AndroidEncryptionType,
   AndroidPhoneType,
-} from "src/constants/android";
+} from "../constants/android";
 import type { Point } from "./common";
 
 /**

@@ -1,18 +1,37 @@
-import { useState } from "react";
-import { type ViewProps } from "react-native";
+import { useEffect, useState } from "react";
+import { Platform, type ViewProps } from "react-native";
 import {
-  runAtTargetFps,
-  useFrameProcessor,
   type CameraProps,
   type Frame,
+  type Orientation as CameraOrientation,
+  runAtTargetFps,
+  useFrameProcessor
 } from "react-native-vision-camera";
-import { Worklets, useSharedValue } from "react-native-worklets-core";
-import { ScanBarcodesOptions, scanCodes } from "src/module";
-import type { Barcode, BarcodeType, Highlight, Rect, Size } from "src/types";
+import { useSharedValue, Worklets } from "react-native-worklets-core";
+import { ScanBarcodesOptions, scanCodes } from "../module";
+import type { Barcode, BarcodeType, Highlight, Rect, Size } from "../types";
 import { computeHighlights } from "..";
 import { useLatestSharedValue } from "./useLatestSharedValue";
+import Orientation, { OrientationType } from "react-native-orientation-locker";
 
 type ResizeMode = NonNullable<CameraProps["resizeMode"]>;
+
+const mapOrientationToVisionCamera = (
+  orientation: OrientationType,
+): CameraOrientation => {
+  switch (orientation) {
+    case "PORTRAIT":
+      return "portrait";
+    case "PORTRAIT-UPSIDEDOWN":
+      return "portrait-upside-down";
+    case "LANDSCAPE-LEFT":
+      return "landscape-left";
+    case "LANDSCAPE-RIGHT":
+      return "landscape-right";
+    default:
+      return "portrait";
+  }
+};
 
 export type UseBarcodeScannerOptions = {
   barcodeTypes?: BarcodeType[];
@@ -33,8 +52,31 @@ export const useBarcodeScanner = ({
   resizeMode = "cover",
   scanMode = "continuous",
   isMountedRef,
-  fps = 5,
+  fps = 30,
 }: UseBarcodeScannerOptions) => {
+  // Device orientation tracking for iPad
+  const deviceOrientationRef = useSharedValue<CameraOrientation>("portrait");
+
+  // Listen for orientation changes
+  useEffect(() => {
+    if (Platform.OS === "ios" && Platform.isPad) {
+      // Use orientation locker for 4-direction detection on iPad
+      const handleOrientationChange = (orientation: OrientationType) => {
+        deviceOrientationRef.value = mapOrientationToVisionCamera(orientation);
+      };
+
+      // Get initial orientation
+      Orientation.getDeviceOrientation(handleOrientationChange);
+
+      // Subscribe to changes
+      Orientation.addDeviceOrientationListener(handleOrientationChange);
+
+      return () => {
+        Orientation.removeDeviceOrientationListener(handleOrientationChange);
+      };
+    }
+  }, [deviceOrientationRef]);
+
   // Layout of the <Camera /> component
   const layoutRef = useSharedValue<Size>({ width: 0, height: 0 });
   const onLayout: ViewProps["onLayout"] = (event) => {
@@ -65,6 +107,12 @@ export const useBarcodeScanner = ({
         const { value: prevBarcodes } = barcodesRef;
         const { value: resizeMode } = resizeModeRef;
         const { width, height, orientation } = frame;
+
+        // Use device orientation for iPad, frame orientation for other devices
+        const actualOrientation =
+          Platform.OS === "ios" && Platform.isPad
+            ? deviceOrientationRef.value
+            : orientation;
 
         // Call the native barcode scanner
         const options: ScanBarcodesOptions = {};
@@ -102,7 +150,7 @@ export const useBarcodeScanner = ({
           }
           const highlights = computeHighlights(
             barcodes,
-            { width, height, orientation }, // "serialized" frame
+            { width, height, orientation: actualOrientation }, // "serialized" frame with actual orientation
             layout,
             resizeMode,
           );
@@ -115,7 +163,7 @@ export const useBarcodeScanner = ({
         }
       });
     },
-    [layoutRef, resizeModeRef, disableHighlighting],
+    [layoutRef, resizeModeRef, disableHighlighting, deviceOrientationRef],
   );
 
   return {

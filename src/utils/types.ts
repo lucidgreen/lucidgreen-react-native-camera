@@ -1,4 +1,4 @@
-import type { BarcodeType, iOSSymbology } from "src/types";
+import type { BarcodeType, iOSSymbology } from "../types";
 import { AndroidBarcodeFormat } from "..";
 
 export const normalizeiOSCodeType = (symbology: iOSSymbology): BarcodeType => {
